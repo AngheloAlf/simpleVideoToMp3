@@ -127,7 +127,7 @@ def generateTtkWidget(wtype, master, posT, x, y, values=None, width=None, curren
             widget.place(x=x, y=y, width=width)
         else:
             widget.place(x=x, y=y)
-        widget.place(x=x, y=y)
+        # widget.place(x=x, y=y)
     elif posT == u"grid":
         if width:
             widget["width"] = width
@@ -232,6 +232,7 @@ class GuiManager:
         self.entries = dict()
         self.checkbuttons = dict()
         self.buttons = dict()
+        self.radios = dict()
         # self.progressBar = list()
         self.restart = False
         self.icon = icon
@@ -390,5 +391,24 @@ class CheckButton(tk.Checkbutton):
         tk.Checkbutton.__init__(self, *args, **kwargs)
 
     def is_checked(self):
+        # type: () -> int
+        return self.var.get()
+
+
+class Radiobuttons:
+    def __init__(self, master, amount, texts, x, y, **kwargs):
+        # type: (ttk.Frame|ttk.LabelFrame, int, list, list, list, **kwargs) -> None
+        self.var = kwargs.get('variable', tk.IntVar())
+        kwargs['variable'] = self.var
+        self.amount = amount
+        self.radios = list()
+        for i in range(self.amount):
+            widget = ttk.Radiobutton(master, text=texts[i], value=i,  **kwargs)
+            self.radios.append(widget)
+            widget.pack()
+            widget.place(x=x[i], y=y[i])
+        return
+
+    def getSelected(self):
         # type: () -> int
         return self.var.get()

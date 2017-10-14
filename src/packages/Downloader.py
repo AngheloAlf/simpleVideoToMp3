@@ -5,5 +5,8 @@ import os
 
 
 class Downloader:
-    def __init__(self):
-        pass
+    def __init__(self, ytUrl):
+        # type: (str) -> None
+        self.url = ytUrl
+        self.data = YouTube(self.url)
+        return

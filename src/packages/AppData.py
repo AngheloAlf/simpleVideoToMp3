@@ -2,8 +2,10 @@
 from . import GuiManager
 from . import GuiGenerator
 from . import Transformer
+from . import Downloader
 
 
+# TODO: Añadir progress bar y threads para que no explote mientras transforma.
 class AppData:
     def __init__(self):
         # type: () -> None
@@ -13,7 +15,6 @@ class AppData:
 
     def start(self):
         # type: () -> None
-
         print(u"Preparando menú superior...")
         cascadeNames = [u"Archivo"]
         cascadeData = [
@@ -25,6 +26,9 @@ class AppData:
 
         print(u"Preparando pestañas...")
         self.gui.addTab("Descargar", GuiGenerator.downloadTab)
+        self.gui.entries["downloadSimple"][0]["state"] = "normal"
+        self.gui.buttons["downloadSimple"][0]["state"] = "normal"
+        self.gui.buttons["downloadSimple"][0]["command"] = self.downloadVideo
 
         self.gui.addTab("Transformar", GuiGenerator.transformTab)
         self.gui.buttons["transformSimple"][0]["command"] = self.transformVideo
@@ -44,11 +48,20 @@ class AppData:
         # type: () -> None
         wantToExit = GuiManager.popupYesNo(u"¿Cerrar?", "¿Seguro que quieres salir de la aplicación?")
         if wantToExit:
+            self.closeSubGui()
             print(u"\nCerrando...\n")
             self.gui.quit()
         return
 
+    def closeSubGui(self):
+        # type: () -> bool
+        if self.subGui and self.subGui.isRunning():
+            self.subGui.close()
+            return True
+        return False
+
     def transformFolder(self):
+        # type: () -> None
         folderSrc = GuiManager.selectFolder(u"Seleccione su carpeta de videos")
         if not folderSrc:
             return
@@ -65,8 +78,10 @@ class AppData:
             GuiManager.popupInfo(u"Exito.", u"Se han transformado todos sus videos.")
         else:
             GuiManager.popupWarning(u"Problemas.", str(errors) + u" archivos no han podido ser transformados.")
+        return
 
     def transformVideo(self):
+        # type: () -> None
         videoSrc = GuiManager.openFile(u"Seleccione su video.", (("MP4", "*.mp4"), ("Todo", "*.*")))
         if not videoSrc:
             return
@@ -81,5 +96,43 @@ class AppData:
             GuiManager.popupInfo(u"Exito.", u"Se ha transformado su video exitosamente..")
         else:
             GuiManager.popupWarning(u"Problemas.", u"Su archivo no han podido ser transformado.")
+        return
+
+    def downloadVideo(self):
+        # type: () -> None
+        ytUrl = self.gui.entries["downloadSimple"][0].get()
+        self.closeSubGui()
+        self.subGui = DownloadManager(ytUrl)
+        self.subGui.start()
+        return
 
 # total = len([name for name in os.listdir(folder1) if os.path.isfile(os.path.join(folder1, name))])
+
+
+class DownloadManager:
+    def __init__(self, ytUrl):
+        # type: (str) -> None
+        self.gui = GuiManager.GuiManager("Descargar")
+        self.ytUrl = ytUrl
+        self.downloader = Downloader.Downloader(self.ytUrl)
+        return
+
+    def start(self):
+        # type: () -> None
+        self.gui.addTab("Descargar", GuiGenerator.downloaderSubTab)
+        # self.gui.entries["downloadSimple"][0]["state"] = "normal"
+        # self.gui.buttons["downloadSimple"][0]["state"] = "normal"
+        # self.gui.buttons["downloadSimple"][0]["command"] = self.downloadVideo
+
+        self.gui.overrideClose(self.close)
+        self.gui.start()
+        return
+
+    def isRunning(self):
+        # type: () -> bool
+        return self.gui.isRunning()
+
+    def close(self):
+        # type: () -> None
+        self.gui.quit()
+        return

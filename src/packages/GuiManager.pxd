@@ -60,6 +60,7 @@ cdef class GuiManager:
     cpdef public dict comboboxs
     cpdef public dict checkbuttons
     cpdef public dict buttons
+    cpdef public dict radios
     # cdef list progressBar
     cdef bint restart
     cdef unicode icon
@@ -113,3 +114,10 @@ cdef class GuiManager:
 #
 #     cpdef int is_checked(self)
 #         # type: () -> int
+
+
+class Radiobuttons:
+    cdef var
+    # self.var = kwargs.get('variable', tk.IntVar())
+    cdef int amount
+    cdef list radios
