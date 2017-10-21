@@ -3,6 +3,8 @@ from . import GuiManager
 from . import GuiGenerator
 from . import Transformer
 from . import Downloader
+import re
+import threading
 
 
 # TODO: Añadir progress bar y threads para que no explote mientras transforma.
@@ -101,9 +103,12 @@ class AppData:
     def downloadVideo(self):
         # type: () -> None
         ytUrl = self.gui.entries["downloadSimple"][0].get()
-        self.closeSubGui()
-        self.subGui = DownloadManager(ytUrl)
-        self.subGui.start()
+        if not ytUrl or not re.compile(r"(?:v=|\/)([0-9A-Za-z_-]{11}).*").search(ytUrl):
+            GuiManager.popupWarning("Warning", "Debe ingresar un enlace valido.")
+        else:
+            self.closeSubGui()
+            self.subGui = DownloadManager(ytUrl)
+            self.subGui.start()
         return
 
 # total = len([name for name in os.listdir(folder1) if os.path.isfile(os.path.join(folder1, name))])
@@ -115,17 +120,105 @@ class DownloadManager:
         self.gui = GuiManager.GuiManager("Descargar")
         self.ytUrl = ytUrl
         self.downloader = Downloader.Downloader(self.ytUrl)
+        self.downloaderReady = False
+        self.filters = dict()
+        hilo = threading.Thread(target=self.downloader.parseYT)
+        hilo.start()
+        threading.Thread(target=self.parseYTdata, args=[hilo]).start()
         return
 
     def start(self):
         # type: () -> None
         self.gui.addTab("Descargar", GuiGenerator.downloaderSubTab)
-        # self.gui.entries["downloadSimple"][0]["state"] = "normal"
-        # self.gui.buttons["downloadSimple"][0]["state"] = "normal"
-        # self.gui.buttons["downloadSimple"][0]["command"] = self.downloadVideo
+
+        self.gui.comboboxs["downloadOptions"][0]["values"] = ["Cargando..."]
+        self.gui.comboboxs["downloadOptions"][0].current(0)
+
+        self.gui.checkbuttons["downloaderSub"][0]["command"] = self.onlyAudioCallback
+        self.gui.radios["downloaderSub"][0]["command"] = self.fileTypeCallback
+        self.gui.radios["downloaderSub"][1]["command"] = self.videoTypeCallback
 
         self.gui.overrideClose(self.close)
         self.gui.start()
+        return
+
+    def parseYTdata(self, hilo):
+        # type: (threading.Thread) -> None
+        c = 0
+        while hilo.isAlive():
+            c += 1
+            continue
+        self.downloaderReady = True
+        print("ready", c)
+        self.applyFilters()
+        self.gui.checkbuttons["downloaderSub"][0]["state"] = "normal"
+        self.gui.radios["downloaderSub"][0]["state"] = "normal"
+        self.gui.radios["downloaderSub"][1]["state"] = "normal"
+        return
+
+    def onlyAudioCallback(self):
+        # type: () -> None
+        while not self.downloaderReady:
+            continue
+        a = self.gui.checkbuttons["downloaderSub"][0]["variable"]
+        self.filters["only_audio"] = bool(self.gui.checkbuttons["downloaderSub"][0].is_checked())
+        self.applyFilters()
+        return
+
+    def fileTypeCallback(self):
+        # type: () -> None
+        while not self.downloaderReady:
+            continue
+
+        selected = self.gui.radios["downloaderSub"][0].getSelected()
+        self.filters["progressive"] = False
+        self.filters["adaptive"] = False
+        if selected == 1:
+            self.filters["progressive"] = True
+        elif selected == 2:
+            self.filters["adaptive"] = True
+
+        self.applyFilters()
+
+    def videoTypeCallback(self):
+        # type: () -> None
+        while not self.downloaderReady:
+            continue
+
+        selected = self.gui.radios["downloaderSub"][1].getSelected()
+        if selected == 0:
+            if "subtype" in self.filters:
+                del self.filters["subtype"]
+        elif selected == 1:
+            self.filters["subtype"] = "mp4"
+        elif selected == 2:
+            self.filters["subtype"] = "webm"
+        elif selected == 3:
+            self.filters["subtype"] = "3gpp"
+
+        self.applyFilters()
+
+        return
+
+    def applyFilters(self):
+        # type: () -> None
+        values = []
+        for i in self.downloader.getValues(**self.filters):
+            parts = '{s.itag}, {s.mime_type}, '
+            if i.includes_video_track:
+                parts += '{s.resolution}@{s.fps}, video_codec: {s.video_codec}'
+                if not i.is_adaptive:
+                    parts += ', audio_codec: {s.audio_codec}'
+            else:
+                parts += '{s.abr}, audio_codec: {s.audio_codec}'
+            parts = parts.format(s=i)
+            values.append(parts)
+        self.gui.comboboxs["downloadOptions"][0]["values"] = values
+        if len(values) > 0:
+            self.gui.comboboxs["downloadOptions"][0].current(0)
+            self.gui.comboboxs["downloadOptions"][0]["state"] = "readonly"
+        else:
+            self.gui.comboboxs["downloadOptions"][0]["state"] = "disabled"
         return
 
     def isRunning(self):

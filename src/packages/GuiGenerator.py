@@ -33,18 +33,23 @@ def transformTab(gui, tab):
 
 def downloaderSubTab(gui, tab):
     # type: (GuiManager.GuiManager, ttk.Frame) -> (int, int)
-    xPoss = [25, 60, 160, 330, 530, 700]
-    yPoss = [30, 60, 90, 120, 180, 210]
+    xPoss = [25, 200, 300, 700, 900]
+    yPoss = [30, 60, 90, 120, 150, 210]
 
-    gui.radios["downloaderSub"] = [GuiManager.Radiobuttons(tab, 2, ["Progresive", "Adaptative"], [xPoss[0], xPoss[0]],
-                                                           yPoss)]
+    radio1 = GuiManager.Radiobuttons(tab, ["Todos", "Progresive (Junto)", "Adaptative (Por separado)"], [xPoss[0]]*3, yPoss)
 
-    check = GuiManager.generateTtkWidget(u"CheckButton", tab, u"place", xPoss[0], yPoss[2], text=u"Solo audio")
-    check["state"] = "normal"
+    check = GuiManager.generateTtkWidget(u"CheckButton", tab, u"place", xPoss[0], yPoss[3], text=u"Solo audio")
+    # check["state"] = "normal"
     gui.checkbuttons["downloaderSub"] = [check]
 
-    gui.radios["downloaderSub"] = [GuiManager.Radiobuttons(tab, 3, ['mp4', 'webm', '3gpp'],
-                                                           [xPoss[2], xPoss[2], xPoss[2]], yPoss)]
+    radio2 = GuiManager.Radiobuttons(tab, ["Todos", 'mp4', 'webm', '3gpp'], [xPoss[1]]*4, yPoss)
+    gui.radios["downloaderSub"] = [radio1, radio2]
 
-    return xPoss[5], yPoss[5]
+    gui.comboboxs["downloadOptions"] = [GuiManager.generateTtkWidget("Combobox", tab, "place", xPoss[2], yPoss[0],
+                                        width=500)]
+
+    gui.buttons["downloadOptionsDown"] = [GuiManager.generateTtkWidget("Button", tab, "place", xPoss[2], yPoss[3],
+                                                                       text="Descargar")]
+
+    return xPoss[4], yPoss[5]
 
