@@ -127,7 +127,6 @@ def generateTtkWidget(wtype, master, posT, x, y, values=None, width=None, curren
             widget.place(x=x, y=y, width=width)
         else:
             widget.place(x=x, y=y)
-        # widget.place(x=x, y=y)
     elif posT == u"grid":
         if width:
             widget["width"] = width
@@ -401,7 +400,7 @@ class Radiobuttons:
         length = len(texts)
         if length > len(x) or length > len(y):
             raise ValueError("Len of 'x' or y' is less than 'texts' arg.")
-        
+
         self.var = kwargs.get('variable', tk.IntVar(master))
         kwargs['variable'] = self.var
         self.radios = list()
