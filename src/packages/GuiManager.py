@@ -232,7 +232,7 @@ class GuiManager:
         self.checkbuttons = dict()
         self.buttons = dict()
         self.radios = dict()
-        # self.progressBar = list()
+        self.progressBar = list()
         self.restart = False
         self.icon = icon
         self.closeOverrided = False
@@ -347,24 +347,65 @@ class GuiManager:
         self.closeOverrided = True
         return
 
-    # def putProgressBar(self, maxi):
-    #     # type: (int) -> None
-    #     pb = ttk.Progressbar(self.gui, orient="horizontal", length=self.tabsWidth, mode="determinate", maximum=maxi)
-    #     pb.grid(column=0, row=1)
-    #     self.progressBar = [pb, maxi]
-    #
-    # def restartProgressBar(self):
-    #     # type: () -> None
-    #     if self.progressBar:
-    #         self.progressBar[0]["value"] = 0
-    #
-    # def updateProgressBar(self):
-    #     # type: () -> None
-    #     if self.progressBar is None:
-    #         return
-    #     if self.progressBar[0]["value"] > self.progressBar[1]:
-    #         self.progressBar[0]["value"] = 0
-    #     self.progressBar[0]["value"] += 1
+    def putProgressBar(self, maxi):
+        # type: (int) -> None
+        pb = ttk.Progressbar(master=self.gui, orient="horizontal", length=self.tabsWidth, mode="determinate",
+                             maximum=maxi)
+        pb.grid(column=0, row=1)
+        self.progressBar = [pb, maxi, 0, 0]
+        return
+
+    def restartProgressBar(self):
+        # type: () -> None
+        if self.progressBar:
+            self.progressBar[3] = 0
+            self.progressBar[0]["value"] = 0
+        return
+
+    def updateProgressBar(self, amount=1):
+        # type: () -> None
+        if self.progressBar is None or len(self.progressBar) != 4:
+            return
+        self.progressBar[3] += 1
+        if self.progressBar[0]["value"] > self.progressBar[1]:
+            self.progressBar[0]["value"] = 0
+        self.progressBar[0]["value"] += amount
+        self.progressBar[2] += amount
+        return
+
+    def setProgressAmount(self, amount):
+        # type: () -> None
+        if self.progressBar is None or len(self.progressBar) != 4:
+            return
+        # print(self.progressBar[0])
+        # print("value", self.progressBar[0]["value"])
+        # print("maximum", self.progressBar[0]["maximum"])
+        self.progressBar[3] += 1
+        if self.progressBar[0]["value"] > self.progressBar[1]:
+            self.progressBar[0]["value"] = 0
+        self.progressBar[0]["value"] = amount
+        self.progressBar[2] = amount
+        return
+
+    def isProgressNew(self):
+        # type: () -> bool
+        if len(self.progressBar) == 4:
+            if self.progressBar[3] == 0:
+                return True
+        return False
+
+    def getProgressBarMax(self):
+        # type: () -> int
+        return self.progressBar[1]
+
+    def setProgressBarMax(self, newMax):
+        # type: (int) -> None
+        self.progressBar[3] += 1
+        self.progressBar[0]["maximum"] = 100
+        print(newMax)
+        self.progressBar[1] = newMax
+        print(self.progressBar[1])
+        return
 
     def isRestart(self):
         # type: () -> bool

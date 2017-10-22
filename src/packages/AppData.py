@@ -5,6 +5,7 @@ from . import Transformer
 from . import Downloader
 import re
 import threading
+import functools
 
 
 # TODO: Añadir progress bar y threads para que no explote mientras transforma.
@@ -125,6 +126,7 @@ class DownloadManager:
         hilo = threading.Thread(target=self.downloader.parseYT)
         hilo.start()
         threading.Thread(target=self.parseYTdata, args=[hilo]).start()
+        # self.gui.putProgressBar(100)
         return
 
     def start(self):
@@ -154,13 +156,15 @@ class DownloadManager:
         self.gui.checkbuttons["downloaderSub"][0]["state"] = "normal"
         self.gui.radios["downloaderSub"][0]["state"] = "normal"
         self.gui.radios["downloaderSub"][1]["state"] = "normal"
+        self.gui.buttons["downloadOptionsDown"][0]["state"] = "normal"
+        self.gui.buttons["downloadOptionsDown"][0]["command"] = self.downloadVideo
+        self.downloader.on_download(functools.partial(on_download, gui=self.gui))
         return
 
     def onlyAudioCallback(self):
         # type: () -> None
         while not self.downloaderReady:
             continue
-        a = self.gui.checkbuttons["downloaderSub"][0]["variable"]
         self.filters["only_audio"] = bool(self.gui.checkbuttons["downloaderSub"][0].is_checked())
         self.applyFilters()
         return
@@ -202,23 +206,30 @@ class DownloadManager:
 
     def applyFilters(self):
         # type: () -> None
-        values = []
-        for i in self.downloader.getValues(**self.filters):
-            parts = '{s.itag}, {s.mime_type}, '
-            if i.includes_video_track:
-                parts += '{s.resolution}@{s.fps}, video_codec: {s.video_codec}'
-                if not i.is_adaptive:
-                    parts += ', audio_codec: {s.audio_codec}'
-            else:
-                parts += '{s.abr}, audio_codec: {s.audio_codec}'
-            parts = parts.format(s=i)
-            values.append(parts)
+        values = self.downloader.getValues(**self.filters)
         self.gui.comboboxs["downloadOptions"][0]["values"] = values
         if len(values) > 0:
             self.gui.comboboxs["downloadOptions"][0].current(0)
             self.gui.comboboxs["downloadOptions"][0]["state"] = "readonly"
         else:
             self.gui.comboboxs["downloadOptions"][0]["state"] = "disabled"
+        return
+
+    def downloadVideo(self):
+        # type: () -> None
+        self.gui.buttons["downloadOptionsDown"][0]["state"] = "disabled"
+        video = self.gui.comboboxs["downloadOptions"][0].get()
+        print(video)
+        itag = int(video.split(",")[0])
+        outputName = GuiManager.selectFolder("Seleccionar carpeta")
+        if outputName:
+            kwargs = dict(self.filters)
+            kwargs["outputName"] = outputName
+            hilo = threading.Thread(target=self.downloader.download, args=[itag], kwargs=kwargs)
+            hilo.start()
+            # self.downloader.download(itag, outputName=outputName, **self.filters)
+        else:
+            self.gui.buttons["downloadOptionsDown"][0]["state"] = "normal"
         return
 
     def isRunning(self):
@@ -229,3 +240,22 @@ class DownloadManager:
         # type: () -> None
         self.gui.quit()
         return
+
+
+def on_download(stream, chunk, file_handle, bytes_remaining, gui):
+    # type: (None, bytes, None, int, GuiManager.GuiManager) -> None
+    # print("")
+    # TODO: Poner Progressbar
+    print(bytes_remaining)
+    # if not gui.isProgressNew():
+    #     print("if gui.getProgressBarMax() != 0:")
+    #     print("max", gui.getProgressBarMax())
+    #     print("remaining", bytes_remaining)
+    #     newData = gui.getProgressBarMax()-bytes_remaining
+    #     newData = int(100.0*newData/gui.getProgressBarMax())
+    #     print("newData", newData)
+    #     gui.setProgressAmount(newData)
+    # else:
+    #     print("else:")
+    #     gui.setProgressBarMax(bytes_remaining)
+    return
