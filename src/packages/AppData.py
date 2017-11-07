@@ -71,8 +71,6 @@ class AppData:
         folderOut = GuiManager.selectFolder(u"Seleccione su carpeta de destino")
         if not folderOut:
             return
-        if "." not in folderOut:
-            folderOut += ".mp3"
 
         self.gui.disableAll()
         errors = Transformer.FolderTransformer(folderSrc, folderOut).transform()
@@ -91,6 +89,8 @@ class AppData:
         audioOut = GuiManager.saveFile(u"Indique el nombre del archivo final.", (("MP3", "*.mp3"), ("Todo", "*.*")))
         if not audioOut:
             return
+        if "." not in audioOut:
+            audioOut += ".mp3"
 
         self.gui.disableAll()
         success = Transformer.Transformer(videoSrc, audioOut).transform()
@@ -146,19 +146,24 @@ class DownloadManager:
 
     def parseYTdata(self, hilo):
         # type: (threading.Thread) -> None
-        c = 0
-        while hilo.isAlive():
-            c += 1
-            continue
-        self.downloaderReady = True
-        print("ready", c)
-        self.applyFilters()
-        self.gui.checkbuttons["downloaderSub"][0]["state"] = "normal"
-        self.gui.radios["downloaderSub"][0]["state"] = "normal"
-        self.gui.radios["downloaderSub"][1]["state"] = "normal"
-        self.gui.buttons["downloadOptionsDown"][0]["state"] = "normal"
-        self.gui.buttons["downloadOptionsDown"][0]["command"] = self.downloadVideo
-        self.downloader.on_download(functools.partial(on_download, gui=self.gui))
+        try:
+            c = 0
+            while hilo.isAlive():
+                c += 1
+                continue
+            self.downloaderReady = True
+            print("ready", c)
+            self.applyFilters()
+            self.gui.checkbuttons["downloaderSub"][0]["state"] = "normal"
+            self.gui.radios["downloaderSub"][0]["state"] = "normal"
+            self.gui.radios["downloaderSub"][1]["state"] = "normal"
+            self.gui.buttons["downloadOptionsDown"][0]["state"] = "normal"
+            self.gui.buttons["downloadOptionsDown"][0]["command"] = self.downloadVideo
+            self.downloader.on_download(functools.partial(on_download, gui=self.gui))
+        except Exception as err:
+            print(err)
+            GuiManager.popupError("Error", str(err))
+            raise
         return
 
     def onlyAudioCallback(self):
@@ -247,6 +252,9 @@ def on_download(stream, chunk, file_handle, bytes_remaining, gui):
     # print("")
     # TODO: Poner Progressbar
     print(bytes_remaining)
+    if bytes_remaining == 0:
+        GuiManager.popupInfo("Listo", "Descarga satisfactoria")
+        gui.quit()
     # if not gui.isProgressNew():
     #     print("if gui.getProgressBarMax() != 0:")
     #     print("max", gui.getProgressBarMax())
